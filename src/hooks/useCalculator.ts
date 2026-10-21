@@ -109,10 +109,7 @@ export const useCalculator = () => {
    * Проверка запускается сразу после ввода последнего символа.
    */
   const trackAccessSequence = (key: CalculatorKey): void => {
-    if (
-      settingsUnlockedRef.current ||
-      verificationInProgressRef.current
-    ) {
+    if (verificationInProgressRef.current) {
       return;
     }
 
@@ -143,8 +140,10 @@ export const useCalculator = () => {
     void invoke<boolean>('verify_access_code', { code: candidate })
       .then((isValid) => {
         if (isValid) {
-          settingsUnlockedRef.current = true;
-          setSettingsUnlocked(true);
+          const nextUnlocked = !settingsUnlockedRef.current;
+
+          settingsUnlockedRef.current = nextUnlocked;
+          setSettingsUnlocked(nextUnlocked);
         }
       })
       .catch((error: unknown) => {

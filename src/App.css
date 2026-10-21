@@ -107,6 +107,10 @@ body {
 /* Контейнер позволяет разместить Settings поверх дисплея. */
 .display-container {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Кнопка скрытого меню в верхнем левом углу. */
