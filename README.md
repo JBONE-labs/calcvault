@@ -1,7 +1,21 @@
-# Tauri + React + Typescript
+# ⚡ CALCVAULT
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+<p align="center">
+  <img src="https://img.shields.io/badge/STATUS-IN_DEVELOPMENT-FF00E5?style=for-the-badge&labelColor=0A0A12" alt="In Development" />
+</p>
 
-## Recommended IDE Setup
+> **CALCVAULT // SYSTEM INITIALIZING...**
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+Calcvault is a desktop calculator currently under development.
+
+🚧 **Project Status: IN DEVELOPMENT**
+
+This project is not yet a finished product. Features and stability are still being improved.
+
+Once development is complete, the status will be updated to **READY TO USE**.
+
+---
+
+<p align="center">
+  <code>BUILDING THE FUTURE. ONE STEP AT A TIME.</code>
+</p>
