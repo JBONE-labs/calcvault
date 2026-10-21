@@ -103,8 +103,8 @@ body {
   }
 }
 
+/* Контейнер дисплея и кнопки Settings */
 
-/* Контейнер позволяет разместить Settings поверх дисплея. */
 .display-container {
   position: relative;
   display: flex;
@@ -113,7 +113,8 @@ body {
   min-height: 0;
 }
 
-/* Кнопка скрытого меню в верхнем левом углу. */
+/* Кнопка скрытого меню */
+
 .settings-button {
   position: absolute;
   top: 12px;
@@ -127,11 +128,15 @@ body {
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-button:hover {
   background: #444;
 }
+
+/* Видимый фокус для доступности */
 
 .settings-button:focus-visible,
 .settings-close:focus-visible {
@@ -139,24 +144,50 @@ body {
   outline-offset: 3px;
 }
 
-/* Временная панель настроек. */
-.settings-panel {
-  padding: 16px;
-  border: 1px solid #777;
-  border-radius: 10px;
-  background: #222;
-  color: #fff;
+/* Полноэкранный экран настроек */
+
+.settings-screen {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  background: #171717;
+  color: #f5f5f5;
 }
 
-.settings-panel h2 {
-  margin: 0 0 12px;
-  font-size: 18px;
+.settings-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #353535;
 }
 
-.settings-panel p {
-  margin: 0 0 16px;
-  font-size: 14px;
+.settings-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
 }
+
+.settings-content {
+  flex: 1;
+  padding-top: 24px;
+}
+
+.settings-content p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #d0d0d0;
+}
+
+.settings-footer {
+  display: flex;
+  padding-top: 20px;
+}
+
+/* Кнопка возврата к калькулятору */
 
 .settings-close {
   padding: 8px 12px;
@@ -166,8 +197,25 @@ body {
   color: #fff;
   font: inherit;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-close:hover {
   background: #444;
+}
+
+.settings-footer .settings-close {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: #a8c7fa;
+  color: #102f60;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.settings-footer .settings-close:hover {
+  background: #8ab4f8;
 }

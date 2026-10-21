@@ -1,10 +1,9 @@
-/* Кнопки и дисплей калькулятора */
+/* Основной экран калькулятора и полноэкранное меню настроек */
 
 import { useState } from 'react';
 import { useCalculator } from './hooks/useCalculator';
 import './App.css';
 import type { CalculatorKey } from './types/calculator.types';
-
 
 const KEYS: CalculatorKey[] = [
   'C', '±', '%', '÷',
@@ -18,7 +17,33 @@ const App = () => {
   const { display, press, settingsUnlocked } = useCalculator();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // При открытом меню калькулятор не отображается.
+  if (settingsUnlocked && settingsOpen) {
+    return (
+      <main className="settings-screen">
+        <header className="settings-header">
+          <h1>Settings</h1>
+        </header>
 
+        <section
+          className="settings-content"
+          aria-label="Настройки приложения"
+        >
+          <p>Дополнительные настройки будут добавлены позже.</p>
+        </section>
+
+        <footer className="settings-footer">
+          <button
+            type="button"
+            className="settings-close"
+            onClick={() => setSettingsOpen(false)}
+          >
+            Back to calculator
+          </button>
+        </footer>
+      </main>
+    );
+  }
 
   return (
     <main className="calculator">
@@ -27,9 +52,7 @@ const App = () => {
           <button
             type="button"
             className="settings-button"
-            onClick={() => setSettingsOpen((open) => !open)}
-            aria-expanded={settingsOpen}
-            aria-controls="calculator-settings"
+            onClick={() => setSettingsOpen(true)}
           >
             Settings
           </button>
@@ -37,25 +60,6 @@ const App = () => {
 
         <div className="display">{display}</div>
       </div>
-
-      {settingsUnlocked && settingsOpen && (
-        <section
-          id="calculator-settings"
-          className="settings-panel"
-          aria-label="Settings"
-        >
-          <h2>Settings</h2>
-          <p>Дополнительные настройки будут добавлены позже.</p>
-
-          <button
-            type="button"
-            className="settings-close"
-            onClick={() => setSettingsOpen(false)}
-          >
-            Close
-          </button>
-        </section>
-      )}
 
       <section className="keypad" aria-label="Калькулятор">
         {KEYS.map((key) => (
