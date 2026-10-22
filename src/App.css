@@ -12,10 +12,71 @@ body,
 }
 
 body {
+  font-family: Roboto, "Arial", sans-serif;
   background: #171717;
   color: #f5f5f5;
-  font-family: Roboto, "Arial", sans-serif;
 }
+
+/* Палитра по умолчанию: Android Theme */
+
+.calculator,
+.settings-screen {
+  --background: #171717;
+  --text: #f5f5f5;
+  --display-text: #ffffff;
+
+  --key-background: #292929;
+  --key-text: #f5f5f5;
+
+  --function-background: #353535;
+  --function-text: #a9c7ff;
+
+  --operator-background: #292929;
+  --operator-text: #a9c7ff;
+
+  --equals-background: #a8c7fa;
+  --equals-text: #102f60;
+
+  --active-background: #484848;
+
+  --border: #353535;
+  --control-background: #333333;
+  --control-text: #ffffff;
+  --secondary-text: #d0d0d0;
+
+  background: var(--background);
+  color: var(--text);
+}
+
+/* Палитра iOS Theme */
+
+.calculator[data-theme='ios'],
+.settings-screen[data-theme='ios'] {
+  --background: #171717;
+  --text: #f5f5f5;
+  --display-text: #ffffff;
+
+  --key-background: #333333;
+  --key-text: #ffffff;
+
+  --function-background: #a5a5a5;
+  --function-text: #000000;
+
+  --operator-background: #ff9f0a;
+  --operator-text: #ffffff;
+
+  --equals-background: #ff9f0a;
+  --equals-text: #ffffff;
+
+  --active-background: #555555;
+
+  --border: #383838;
+  --control-background: #1c1c1e;
+  --control-text: #ffffff;
+  --secondary-text: #aeaeb2;
+}
+
+/* Экран калькулятора */
 
 .calculator {
   min-height: 100vh;
@@ -25,7 +86,16 @@ body {
   padding: 24px 20px;
   padding-top: max(24px, env(safe-area-inset-top));
   padding-bottom: max(24px, env(safe-area-inset-bottom));
-  background: #171717;
+}
+
+/* Дисплей и кнопка Settings */
+
+.display-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .display {
@@ -40,8 +110,37 @@ body {
   font-size: clamp(42px, 12vw, 64px);
   font-weight: 300;
   text-align: right;
-  color: #ffffff;
+  color: var(--display-text);
 }
+
+.settings-button {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  padding: 6px 10px;
+  border: 1px solid #777;
+  border-radius: 6px;
+  background: var(--control-background);
+  color: var(--control-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-button:hover {
+  background: var(--active-background);
+}
+
+.settings-button:focus-visible,
+.settings-close:focus-visible {
+  outline: 2px solid var(--function-text);
+  outline-offset: 3px;
+}
+
+/* Клавиатура */
 
 .keypad {
   display: grid;
@@ -56,8 +155,8 @@ body {
   aspect-ratio: 1;
   border: none;
   border-radius: 50%;
-  background: #292929;
-  color: #f5f5f5;
+  background: var(--key-background);
+  color: var(--key-text);
   font-size: clamp(22px, 6vw, 28px);
   font-weight: 400;
   cursor: pointer;
@@ -67,23 +166,23 @@ body {
 }
 
 .key:active {
-  background: #484848;
+  background: var(--active-background);
 }
 
 .key.function {
-  background: #353535;
-  color: #a9c7ff;
+  background: var(--function-background);
+  color: var(--function-text);
 }
 
 .key.operator {
-  background: #292929;
-  color: #a9c7ff;
+  background: var(--operator-background);
+  color: var(--operator-text);
   font-size: 30px;
 }
 
 .key.equals {
-  background: #a8c7fa;
-  color: #102f60;
+  background: var(--equals-background);
+  color: var(--equals-text);
   font-weight: 500;
 }
 
@@ -93,58 +192,7 @@ body {
   border-radius: 100px;
 }
 
-@media (max-height: 650px) {
-  .display {
-    min-height: 100px;
-  }
-
-  .keypad {
-    gap: 8px;
-  }
-}
-
-/* Контейнер дисплея и кнопки Settings */
-
-.display-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-/* Кнопка скрытого меню */
-
-.settings-button {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-  padding: 6px 10px;
-  border: 1px solid #777;
-  border-radius: 6px;
-  background: #333;
-  color: #fff;
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.settings-button:hover {
-  background: #444;
-}
-
-/* Видимый фокус для доступности */
-
-.settings-button:focus-visible,
-.settings-close:focus-visible {
-  outline: 2px solid #888;
-  outline-offset: 3px;
-}
-
-/* Полноэкранный экран настроек */
+/* Полноэкранные настройки */
 
 .settings-screen {
   width: 100%;
@@ -155,13 +203,11 @@ body {
   padding: 24px 20px;
   padding-top: max(24px, env(safe-area-inset-top));
   padding-bottom: max(24px, env(safe-area-inset-bottom));
-  background: #171717;
-  color: #f5f5f5;
 }
 
 .settings-header {
   padding-bottom: 20px;
-  border-bottom: 1px solid #353535;
+  border-bottom: 1px solid var(--border);
 }
 
 .settings-header h1 {
@@ -175,11 +221,43 @@ body {
   padding-top: 24px;
 }
 
-.settings-content p {
+/* Пункт Theme */
+
+.theme-settings {
+  display: grid;
+  gap: 12px;
   margin: 0;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #d0d0d0;
+  padding: 0;
+  border: 0;
+}
+
+.theme-settings legend {
+  margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--control-background);
+  color: var(--control-text);
+  cursor: pointer;
+}
+
+.theme-option input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--operator-background);
+  cursor: pointer;
 }
 
 .settings-footer {
@@ -187,35 +265,34 @@ body {
   padding-top: 20px;
 }
 
-/* Кнопка возврата к калькулятору */
+/* Возврат к калькулятору */
 
 .settings-close {
+  width: 100%;
+  min-height: 48px;
   padding: 8px 12px;
-  border: 1px solid #777;
-  border-radius: 6px;
-  background: #333;
-  color: #fff;
+  border: none;
+  border-radius: 10px;
+  background: var(--equals-background);
+  color: var(--equals-text);
   font: inherit;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 .settings-close:hover {
-  background: #444;
+  opacity: 0.9;
 }
 
-.settings-footer .settings-close {
-  width: 100%;
-  min-height: 48px;
-  border: none;
-  border-radius: 10px;
-  background: #a8c7fa;
-  color: #102f60;
-  font-size: 16px;
-  font-weight: 500;
-}
+@media (max-height: 650px) {
+  .display {
+    min-height: 100px;
+  }
 
-.settings-footer .settings-close:hover {
-  background: #8ab4f8;
+  .keypad {
+    gap: 8px;
+  }
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useCalculator } from './hooks/useCalculator';
 import './App.css';
-import type { CalculatorKey } from './types/calculator.types';
+import type { CalculatorKey, CalculatorTheme } from './types/calculator.types';
 
 const KEYS: CalculatorKey[] = [
   'C', '±', '%', '÷',
@@ -14,13 +14,14 @@ const KEYS: CalculatorKey[] = [
 ];
 
 const App = () => {
+  const [theme, setTheme] = useState<CalculatorTheme>('android');
   const { display, press, settingsUnlocked } = useCalculator();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // При открытом меню калькулятор не отображается.
   if (settingsUnlocked && settingsOpen) {
     return (
-      <main className="settings-screen">
+      <main className="settings-screen" data-theme={theme}>
         <header className="settings-header">
           <h1>Settings</h1>
         </header>
@@ -29,7 +30,31 @@ const App = () => {
           className="settings-content"
           aria-label="Настройки приложения"
         >
-          <p>Дополнительные настройки будут добавлены позже.</p>
+          <fieldset className="theme-settings">
+            <legend>Theme</legend>
+
+            <label className="theme-option">
+              <span>Android Theme</span>
+              <input
+                type="radio"
+                name="calculator-theme"
+                value="android"
+                checked={theme === 'android'}
+                onChange={() => setTheme('android')}
+              />
+            </label>
+
+            <label className="theme-option">
+              <span>iOS Theme</span>
+              <input
+                type="radio"
+                name="calculator-theme"
+                value="ios"
+                checked={theme === 'ios'}
+                onChange={() => setTheme('ios')}
+              />
+            </label>
+          </fieldset>
         </section>
 
         <footer className="settings-footer">
@@ -46,7 +71,7 @@ const App = () => {
   }
 
   return (
-    <main className="calculator">
+    <main className="calculator" data-theme={theme}>
       <div className="display-container">
         {settingsUnlocked && (
           <button

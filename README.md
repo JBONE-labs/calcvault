@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/STATUS-IN_DEVELOPMENT-FF00E5?style=for-the-badge&labelColor=0A0A12" alt="In Development" />
 </p>
 
-Calcvault is a phone calculator currently under development.
+<bolt>Calcvault is a phone calculator currently under development.<bolt/>
 
 🚧 **Project Status: IN DEVELOPMENT**
 
