@@ -1,3 +1,5 @@
+/* хук, который отслеживает последовательность нажатий, проверяет введённый код доступа и управляет состоянием разблокировки настроек. */
+
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { CalculatorKey } from '../types/calculator.types';

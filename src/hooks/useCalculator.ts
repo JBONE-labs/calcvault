@@ -1,3 +1,5 @@
+/* хук, который управляет состоянием калькулятора: хранит текущее значение на дисплее, обрабатывает нажатия клавиш и использует useAccessCode.ts для проверки скрытого кода доступа */
+
 import { useState } from 'react';
 import type { Operator, CalculatorKey } from '../types/calculator.types';
 import { calculate, formatResult, canAppendDigit } from '../utils/calculator.utils';
