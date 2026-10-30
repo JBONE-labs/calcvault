@@ -124,15 +124,31 @@ pub fn change_access_code(
     current_code: String,
     new_code: String,
 ) -> Result<usize, String> {
+    validate_code(&current_code)?;
     validate_code(&new_code)?;
 
     if !verify_code(&app, &current_code)? {
-        return Err("Incorrect current access code".into());
+        return Err("Incorrect current code".into());
     }
 
     let path = config_path(&app)?;
     let hash = hash_code(&new_code)?;
+
     save_hash(&path, &new_code, &hash)?;
 
     Ok(new_code.len())
+}
+
+/// Сбрасывает пользовательский код на стандартный 123+=.
+/// Для выполнения операции требуется ввести текущий код.
+#[tauri::command]
+pub fn reset_access_code(
+    app: AppHandle,
+) -> Result<usize, String> {
+    let path = config_path(&app)?;
+    let hash = hash_code(DEFAULT_CODE)?;
+
+    save_hash(&path, DEFAULT_CODE, &hash)?;
+
+    Ok(DEFAULT_CODE.len())
 }

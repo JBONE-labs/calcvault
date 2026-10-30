@@ -1,6 +1,6 @@
-/* Отображает настройки: переключение между Android Theme и iOS Theme, а также кнопку возврата к калькулятору. Получает тему и обработчики от App.tsx */
-
-import type { CalculatorTheme } from '../types/calculator.types';
+import { useState } from 'react';
+import type { CalculatorTheme, SettingsSection } from '../types/calculator.types';
+import AccessCodeScreen from './AccessCodeScreen';
 
 interface SettingsScreenProps {
   theme: CalculatorTheme;
@@ -8,11 +8,23 @@ interface SettingsScreenProps {
   onBack: () => void;
 }
 
+
 const SettingsScreen = ({
   theme,
   onThemeChange,
   onBack,
 }: SettingsScreenProps) => {
+  const [section, setSection] = useState<SettingsSection>('main');
+
+  if (section === 'access-code') {
+    return (
+      <AccessCodeScreen
+        theme={theme}
+        onBack={() => setSection('main')}
+      />
+    );
+  }
+
   return (
     <main className="settings-screen" data-theme={theme}>
       <header className="settings-header">
@@ -48,6 +60,21 @@ const SettingsScreen = ({
             />
           </label>
         </fieldset>
+
+        <section className="settings-section">
+          <h2>Security</h2>
+
+          <button
+            type="button"
+            className="settings-navigation"
+            onClick={() => setSection('access-code')}
+          >
+            <span>Access Code</span>
+            <span className="settings-navigation-arrow" aria-hidden="true">
+              →
+            </span>
+          </button>
+        </section>
       </section>
 
       <footer className="settings-footer">

@@ -4,21 +4,28 @@ import { useState } from 'react';
 import { useCalculator } from './hooks/useCalculator';
 import CalculatorScreen from './components/CalculatorScreen';
 import SettingsScreen from './components/SettingsScreen';
-import './App.css';
 import type { CalculatorTheme } from './types/calculator.types';
+import './App.css';
 
 const App = () => {
   const [theme, setTheme] = useState<CalculatorTheme>('android');
-  const { display, press, settingsUnlocked } = useCalculator();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // При открытом меню калькулятор не отображается.
+  const {
+    display,
+    press,
+    settingsUnlocked,
+    refreshAccessCodeLength,
+  } = useCalculator();
+
+  // Показываем настройки только после ввода правильного кода.
   if (settingsUnlocked && settingsOpen) {
     return (
       <SettingsScreen
         theme={theme}
         onThemeChange={setTheme}
         onBack={() => setSettingsOpen(false)}
+        onAccessCodeChanged={refreshAccessCodeLength}
       />
     );
   }

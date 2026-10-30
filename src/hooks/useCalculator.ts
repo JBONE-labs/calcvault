@@ -1,8 +1,17 @@
 /* хук, который управляет состоянием калькулятора: хранит текущее значение на дисплее, обрабатывает нажатия клавиш и использует useAccessCode.ts для проверки скрытого кода доступа */
 
 import { useState } from 'react';
-import type { Operator, CalculatorKey } from '../types/calculator.types';
-import { calculate, formatResult, canAppendDigit } from '../utils/calculator.utils';
+import type {
+  Operator,
+  CalculatorKey,
+} from '../types/calculator.types';
+
+import {
+  calculate,
+  formatResult,
+  canAppendDigit,
+} from '../utils/calculator.utils';
+
 import { useAccessCode } from './useAccessCode';
 
 export const useCalculator = () => {
@@ -14,6 +23,7 @@ export const useCalculator = () => {
   const {
     settingsUnlocked,
     trackAccessKey,
+    refreshAccessCodeLength,
   } = useAccessCode();
 
   const press = (key: CalculatorKey): void => {
@@ -46,7 +56,9 @@ export const useCalculator = () => {
     }
 
     if (key === '=') {
-      if (prev === null || op === null) return;
+      if (prev === null || op === null) {
+        return;
+      }
 
       const b = Number(display);
 
@@ -70,19 +82,29 @@ export const useCalculator = () => {
         setDisplay('0.');
         setReset(false);
       } else if (!display.includes('.')) {
-        if (!canAppendDigit(display)) return;
+        if (!canAppendDigit(display)) {
+          return;
+        }
+
         setDisplay(`${display}.`);
       }
+
       return;
     }
 
-    if (reset || display === '0' || display === "Can't divide by 0") {
+    if (
+      reset ||
+      display === '0' ||
+      display === "Can't divide by 0"
+    ) {
       setDisplay(key);
       setReset(false);
       return;
     }
 
-    if (!canAppendDigit(display)) return;
+    if (!canAppendDigit(display)) {
+      return;
+    }
 
     setDisplay(display + key);
   };
@@ -91,5 +113,6 @@ export const useCalculator = () => {
     display,
     press,
     settingsUnlocked,
+    refreshAccessCodeLength,
   };
 };

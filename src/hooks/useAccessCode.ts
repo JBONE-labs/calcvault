@@ -1,6 +1,6 @@
 /* хук, который отслеживает последовательность нажатий, проверяет введённый код доступа и управляет состоянием разблокировки настроек. */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { CalculatorKey } from '../types/calculator.types';
 
@@ -8,7 +8,9 @@ const MIN_CODE_LENGTH = 5;
 const MAX_CODE_LENGTH = 64;
 
 const getAccessCharacter = (key: CalculatorKey): string | null => {
-  if (/^[0-9]$/.test(key)) return key;
+  if (/^[0-9]$/.test(key)) {
+    return key;
+  }
 
   switch (key) {
     case '+':
@@ -36,6 +38,23 @@ export const useAccessCode = () => {
   const sequenceRef = useRef('');
   const verificationInProgressRef = useRef(false);
 
+  // Загружает актуальную длину кода из Rust.
+  const refreshAccessCodeLength = useCallback(async (): Promise<void> => {
+    const length = await invoke<number>('get_access_code_length');
+
+    if (
+      !Number.isInteger(length) ||
+      length < MIN_CODE_LENGTH ||
+      length > MAX_CODE_LENGTH
+    ) {
+      throw new Error('Invalid access-code length');
+    }
+
+    codeLengthRef.current = length;
+    sequenceRef.current = '';
+  }, []);
+
+  // Загружаем длину кода при первом рендере.
   useEffect(() => {
     let cancelled = false;
 
@@ -64,14 +83,27 @@ export const useAccessCode = () => {
     };
   }, []);
 
-  const trackAccessKey = (key: CalculatorKey): void => {
-    if (verificationInProgressRef.current) return;
+  // Очищает текущую последовательность ввода.
+  const resetAccessSequence = useCallback((): void => {
+    sequenceRef.current = '';
+  }, []);
+
+  // Обрабатывает каждое нажатие клавиши калькулятора.
+  const trackAccessKey = useCallback((key: CalculatorKey): void => {
+    if (verificationInProgressRef.current) {
+      return;
+    }
 
     const codeLength = codeLengthRef.current;
-    if (codeLength === null) return;
+
+    // Пока длина кода не загружена, ввод не проверяем.
+    if (codeLength === null) {
+      return;
+    }
 
     const character = getAccessCharacter(key);
 
+    // Нажатие C или ± сбрасывает последовательность.
     if (character === null) {
       sequenceRef.current = '';
       return;
@@ -79,13 +111,20 @@ export const useAccessCode = () => {
 
     sequenceRef.current += character;
 
-    if (sequenceRef.current.length < codeLength) return;
+    // Пока не набрана нужная длина, продолжаем собирать код.
+    if (sequenceRef.current.length < codeLength) {
+      return;
+    }
 
+    // Проверяем последние N символов.
     const candidate = sequenceRef.current.slice(-codeLength);
+
     sequenceRef.current = '';
     verificationInProgressRef.current = true;
 
-    void invoke<boolean>('verify_access_code', { code: candidate })
+    void invoke<boolean>('verify_access_code', {
+      code: candidate,
+    })
       .then((isValid) => {
         if (isValid) {
           setSettingsUnlocked((current) => !current);
@@ -97,15 +136,12 @@ export const useAccessCode = () => {
       .finally(() => {
         verificationInProgressRef.current = false;
       });
-  };
-
-  const resetAccessSequence = (): void => {
-    sequenceRef.current = '';
-  };
+  }, []);
 
   return {
     settingsUnlocked,
     trackAccessKey,
     resetAccessSequence,
+    refreshAccessCodeLength,
   };
 };
