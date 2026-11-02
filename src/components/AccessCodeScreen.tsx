@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
@@ -20,6 +19,10 @@ const AccessCodeScreen = ({
   const [currentCode, setCurrentCode] = useState('');
   const [newCode, setNewCode] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
+
+  const [showCurrentCode, setShowCurrentCode] = useState(false);
+  const [showNewCode, setShowNewCode] = useState(false);
+  const [showConfirmCode, setShowConfirmCode] = useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -121,41 +124,77 @@ const AccessCodeScreen = ({
         <form className="access-code-form" onSubmit={handleSubmit}>
           <label className="access-code-field">
             <span>Current Code</span>
-            <input
-              type="password"
-              value={currentCode}
-              onChange={(event) => setCurrentCode(event.target.value)}
-              autoComplete="current-password"
-              maxLength={64}
-              disabled={isSaving}
-              required
-            />
+            <span className="access-code-input-wrapper">
+              <input
+                type={showCurrentCode ? 'text' : 'password'}
+                value={currentCode}
+                onChange={(event) => setCurrentCode(event.target.value)}
+                autoComplete="current-password"
+                maxLength={64}
+                disabled={isSaving}
+                required
+              />
+              <button
+                type="button"
+                className="access-code-visibility"
+                onClick={() => setShowCurrentCode((visible) => !visible)}
+                aria-label={showCurrentCode ? 'Hide current code' : 'Show current code'}
+                aria-pressed={showCurrentCode}
+                disabled={isSaving}
+              >
+                {showCurrentCode ? 'Hide' : 'Show'}
+              </button>
+            </span>
           </label>
 
           <label className="access-code-field">
             <span>New Code</span>
-            <input
-              type="password"
-              value={newCode}
-              onChange={(event) => setNewCode(event.target.value)}
-              autoComplete="new-password"
-              maxLength={64}
-              disabled={isSaving}
-              required
-            />
+            <span className="access-code-input-wrapper">
+              <input
+                type={showNewCode ? 'text' : 'password'}
+                value={newCode}
+                onChange={(event) => setNewCode(event.target.value)}
+                autoComplete="new-password"
+                maxLength={64}
+                disabled={isSaving}
+                required
+              />
+              <button
+                type="button"
+                className="access-code-visibility"
+                onClick={() => setShowNewCode((visible) => !visible)}
+                aria-label={showNewCode ? 'Hide new code' : 'Show new code'}
+                aria-pressed={showNewCode}
+                disabled={isSaving}
+              >
+                {showNewCode ? 'Hide' : 'Show'}
+              </button>
+            </span>
           </label>
 
           <label className="access-code-field">
             <span>Confirm New Code</span>
-            <input
-              type="password"
-              value={confirmCode}
-              onChange={(event) => setConfirmCode(event.target.value)}
-              autoComplete="new-password"
-              maxLength={64}
-              disabled={isSaving}
-              required
-            />
+            <span className="access-code-input-wrapper">
+              <input
+                type={showConfirmCode ? 'text' : 'password'}
+                value={confirmCode}
+                onChange={(event) => setConfirmCode(event.target.value)}
+                autoComplete="new-password"
+                maxLength={64}
+                disabled={isSaving}
+                required
+              />
+              <button
+                type="button"
+                className="access-code-visibility"
+                onClick={() => setShowConfirmCode((visible) => !visible)}
+                aria-label={showConfirmCode ? 'Hide confirmation code' : 'Show confirmation code'}
+                aria-pressed={showConfirmCode}
+                disabled={isSaving}
+              >
+                {showConfirmCode ? 'Hide' : 'Show'}
+              </button>
+            </span>
           </label>
 
           <button
