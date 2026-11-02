@@ -1,3 +1,6 @@
+//TODO: rebase <input> tag for component
+//TODO: replace approve text after successful code changes when typing new value
+
 
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
