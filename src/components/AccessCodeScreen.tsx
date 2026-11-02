@@ -1,15 +1,20 @@
+
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import eyeIcon from '../assets/icons/eyeOpen.svg';
+import eyeOffIcon from '../assets/icons/eyeClose.svg'
 
 interface AccessCodeScreenProps {
   theme: 'android' | 'ios';
   onBack: () => void;
+  onAccessCodeChanged: () => Promise<void>;
 }
 
 const AccessCodeScreen = ({
   theme,
   onBack,
+  onAccessCodeChanged,
 }: AccessCodeScreenProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [savingAction, setSavingAction] = useState<'change' | 'reset' | null>(
@@ -19,6 +24,10 @@ const AccessCodeScreen = ({
   const [currentCode, setCurrentCode] = useState('');
   const [newCode, setNewCode] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
+
+  const [showCurrentCode, setShowCurrentCode] = useState(false);
+  const [showNewCode, setShowNewCode] = useState(false);
+  const [showConfirmCode, setShowConfirmCode] = useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -57,6 +66,8 @@ const AccessCodeScreen = ({
         newCode,
       });
 
+      await onAccessCodeChanged();
+
       setCurrentCode('');
       setNewCode('');
       setConfirmCode('');
@@ -82,6 +93,8 @@ const AccessCodeScreen = ({
 
     try {
       await invoke<number>('reset_access_code');
+
+      await onAccessCodeChanged();
 
       setCurrentCode('');
       setNewCode('');
@@ -120,41 +133,95 @@ const AccessCodeScreen = ({
         <form className="access-code-form" onSubmit={handleSubmit}>
           <label className="access-code-field">
             <span>Current Code</span>
-            <input
-              type="password"
-              value={currentCode}
-              onChange={(event) => setCurrentCode(event.target.value)}
-              autoComplete="current-password"
-              maxLength={64}
-              disabled={isSaving}
-              required
-            />
+            <div className="access-code-input-wrapper">
+              <input
+                type={showCurrentCode ? 'text' : 'password'}
+                value={currentCode}
+                onChange={(event) => setCurrentCode(event.target.value)}
+                autoComplete="current-password"
+                maxLength={64}
+                disabled={isSaving}
+                required
+              />
+
+              <button
+                type="button"
+                className="access-code-visibility"
+                onClick={() => setShowCurrentCode((value) => !value)}
+                aria-label={showCurrentCode ? 'Hide current code' : 'Show current code'}
+                aria-pressed={showCurrentCode}
+                disabled={isSaving}
+              >
+                <img
+                  className="access-code-visibility-icon"
+                  src={showCurrentCode ? eyeIcon : eyeOffIcon}
+                  alt=""
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </label>
 
           <label className="access-code-field">
             <span>New Code</span>
-            <input
-              type="password"
-              value={newCode}
-              onChange={(event) => setNewCode(event.target.value)}
-              autoComplete="new-password"
-              maxLength={64}
-              disabled={isSaving}
-              required
-            />
+            <div className="access-code-input-wrapper">
+              <input
+                type={showNewCode ? 'text' : 'password'}
+                value={newCode}
+                onChange={(event) => setNewCode(event.target.value)}
+                autoComplete="new-password"
+                maxLength={64}
+                disabled={isSaving}
+                required
+              />
+
+              <button
+                type="button"
+                className="access-code-visibility"
+                onClick={() => setShowNewCode((value) => !value)}
+                aria-label={showNewCode ? 'Hide new code' : 'Show new code'}
+                aria-pressed={showNewCode}
+                disabled={isSaving}
+              >
+                <img
+                  className="access-code-visibility-icon"
+                  src={showNewCode ? eyeIcon : eyeOffIcon}
+                  alt=""
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </label>
 
           <label className="access-code-field">
             <span>Confirm New Code</span>
-            <input
-              type="password"
-              value={confirmCode}
-              onChange={(event) => setConfirmCode(event.target.value)}
-              autoComplete="new-password"
-              maxLength={64}
-              disabled={isSaving}
-              required
-            />
+            <div className="access-code-input-wrapper">
+              <input
+                type={showConfirmCode ? 'text' : 'password'}
+                value={confirmCode}
+                onChange={(event) => setConfirmCode(event.target.value)}
+                autoComplete="new-password"
+                maxLength={64}
+                disabled={isSaving}
+                required
+              />
+
+              <button
+                type="button"
+                className="access-code-visibility"
+                onClick={() => setShowConfirmCode((value) => !value)}
+                aria-label={showConfirmCode ? 'Hide confirmation code' : 'Show confirmation code'}
+                aria-pressed={showConfirmCode}
+                disabled={isSaving}
+              >
+                <img
+                  className="access-code-visibility-icon"
+                  src={showConfirmCode ? eyeIcon : eyeOffIcon}
+                  alt=""
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </label>
 
           <button

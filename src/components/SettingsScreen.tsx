@@ -1,3 +1,5 @@
+// TODO: replace all interfaces from all components
+
 import { useState } from 'react';
 import type { CalculatorTheme, SettingsSection } from '../types/calculator.types';
 import AccessCodeScreen from './AccessCodeScreen';
@@ -6,6 +8,7 @@ interface SettingsScreenProps {
   theme: CalculatorTheme;
   onThemeChange: (theme: CalculatorTheme) => void;
   onBack: () => void;
+  onAccessCodeChanged: () => Promise<void>;
 }
 
 
@@ -13,6 +16,7 @@ const SettingsScreen = ({
   theme,
   onThemeChange,
   onBack,
+  onAccessCodeChanged,
 }: SettingsScreenProps) => {
   const [section, setSection] = useState<SettingsSection>('main');
 
@@ -21,6 +25,7 @@ const SettingsScreen = ({
       <AccessCodeScreen
         theme={theme}
         onBack={() => setSection('main')}
+        onAccessCodeChanged={onAccessCodeChanged}
       />
     );
   }

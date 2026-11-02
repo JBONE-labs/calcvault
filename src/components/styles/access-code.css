@@ -1,3 +1,4 @@
+
 .access-code-content {
   display: flex;
   flex-direction: column;
@@ -24,10 +25,20 @@
   font-weight: 500;
 }
 
+/* Обёртка поля ввода и кнопки показа кода */
+.access-code-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Поле ввода */
 .access-code-field input {
+  box-sizing: border-box;
   width: 100%;
   min-height: 48px;
-  padding: 10px 14px;
+  padding: 10px 48px 10px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
   outline: none;
@@ -46,6 +57,51 @@
   cursor: not-allowed;
 }
 
+/* Кнопка показа/скрытия кода */
+.access-code-visibility {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--control-text);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.access-code-visibility:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.access-code-visibility:focus-visible {
+  outline: 2px solid var(--operator-background);
+  outline-offset: 2px;
+}
+
+.access-code-visibility:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* SVG-иконка глаза */
+.access-code-visibility-icon {
+  display: block;
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Кнопка смены кода */
 .access-code-submit {
   width: 100%;
   min-height: 48px;
@@ -72,6 +128,7 @@
   cursor: not-allowed;
 }
 
+/* Сообщения об ошибке и успешном действии */
 .access-code-error,
 .access-code-success,
 .access-code-message {
@@ -92,6 +149,46 @@
   color: var(--control-text);
 }
 
+/* Блок сброса кода */
+.access-code-reset {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.access-code-reset .access-code-hint {
+  margin-bottom: 0;
+}
+
+/* Кнопка сброса */
+.access-code-reset-button {
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--control-background);
+  color: var(--control-text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.access-code-reset-button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.access-code-reset-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Общие настройки разделов */
 .settings-section {
   display: grid;
   gap: 12px;
@@ -104,6 +201,7 @@
   font-weight: 500;
 }
 
+/* Кнопки навигации настроек */
 .settings-navigation {
   display: flex;
   align-items: center;
