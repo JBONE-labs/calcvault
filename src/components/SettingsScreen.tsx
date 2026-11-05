@@ -1,15 +1,7 @@
-// TODO: replace all interfaces from all components
-
 import { useState } from 'react';
-import type { CalculatorTheme, SettingsSection } from '../types/calculator.types';
+import type { SettingsScreenProps, SettingsSection } from '../types/calculator.types';
 import AccessCodeScreen from './AccessCodeScreen';
-
-interface SettingsScreenProps {
-  theme: CalculatorTheme;
-  onThemeChange: (theme: CalculatorTheme) => void;
-  onBack: () => void;
-  onAccessCodeChanged: () => Promise<void>;
-}
+import SettingsFooter from './SettingsFooter';
 
 
 const SettingsScreen = ({
@@ -82,15 +74,10 @@ const SettingsScreen = ({
         </section>
       </section>
 
-      <footer className="settings-footer">
-        <button
-          type="button"
-          className="settings-close"
-          onClick={onBack}
-        >
-          Back to calculator
-        </button>
-      </footer>
+      <SettingsFooter
+        buttonText="Back to calculator"
+        onBack={onBack}
+      />
     </main>
   );
 };

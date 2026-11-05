@@ -39,20 +39,22 @@ export const useAccessCode = () => {
   const verificationInProgressRef = useRef(false);
 
   // Загружает актуальную длину кода из Rust.
-  const refreshAccessCodeLength = useCallback(async (): Promise<void> => {
-    const length = await invoke<number>('get_access_code_length');
+const refreshAccessCodeLength = useCallback(async (): Promise<void> => {
+  codeLengthRef.current = null;
+  sequenceRef.current = '';
 
-    if (
-      !Number.isInteger(length) ||
-      length < MIN_CODE_LENGTH ||
-      length > MAX_CODE_LENGTH
-    ) {
-      throw new Error('Invalid access-code length');
-    }
+  const length = await invoke<number>('get_access_code_length');
 
-    codeLengthRef.current = length;
-    sequenceRef.current = '';
-  }, []);
+  if (
+    !Number.isInteger(length) ||
+    length < MIN_CODE_LENGTH ||
+    length > MAX_CODE_LENGTH
+  ) {
+    throw new Error('Invalid access-code length');
+  }
+
+  codeLengthRef.current = length;
+}, []);
 
   // Загружаем длину кода при первом рендере.
   useEffect(() => {

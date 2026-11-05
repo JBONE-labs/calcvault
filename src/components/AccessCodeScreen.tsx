@@ -1,18 +1,13 @@
-//TODO: rebase <input> tag for component
-//TODO: replace approve text after successful code changes when typing new value
 
+/* управляет состоянием экрана и вызывает Rust-команды. */
 
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import eyeIcon from '../assets/icons/eyeOpen.svg';
-import eyeOffIcon from '../assets/icons/eyeClose.svg'
-
-interface AccessCodeScreenProps {
-  theme: 'android' | 'ios';
-  onBack: () => void;
-  onAccessCodeChanged: () => Promise<void>;
-}
+import AccessCodeForm from './AccessCodeForm';
+import SettingsFooter from './SettingsFooter';
+import type { AccessCodeScreenProps } from '../types/calculator.types';
+import { isValidAccessCode } from '../utils/accessCode.utils';
 
 const AccessCodeScreen = ({
   theme,
@@ -35,6 +30,26 @@ const AccessCodeScreen = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Clear messages when any form field changes.
+  const handleCurrentCodeChange = (value: string) => {
+    setCurrentCode(value);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleNewCodeChange = (value: string) => {
+    setNewCode(value);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleConfirmCodeChange = (value: string) => {
+    setConfirmCode(value);
+    setError('');
+    setSuccess('');
+  };
+
+  // Change access code.
   const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -46,9 +61,7 @@ const AccessCodeScreen = ({
       return;
     }
 
-    const allowedCodePattern = /^[0-9.+*/%=-]{5,64}$/;
-
-    if (!allowedCodePattern.test(newCode)) {
+    if (!isValidAccessCode(newCode)) {
       setError(
         'The new code must contain 5–64 characters. Allowed characters: digits and . + - * / % =',
       );
@@ -63,23 +76,37 @@ const AccessCodeScreen = ({
     setIsSaving(true);
     setSavingAction('change');
 
+    // First: change the code in Rust.
     try {
       await invoke<number>('change_access_code', {
         currentCode,
         newCode,
       });
-
-      await onAccessCodeChanged();
-
-      setCurrentCode('');
-      setNewCode('');
-      setConfirmCode('');
-      setSuccess('Access code successfully changed.');
     } catch (err) {
       setError(
         typeof err === 'string'
           ? err
           : 'Failed to change access code. Please check your current code.',
+      );
+
+      setIsSaving(false);
+      setSavingAction(null);
+      return;
+    }
+
+    // Rust successfully changed the code.
+    setCurrentCode('');
+    setNewCode('');
+    setConfirmCode('');
+
+    // Second: refresh application state.
+    try {
+      await onAccessCodeChanged();
+
+      setSuccess('Access code successfully changed.');
+    } catch {
+      setError(
+        'Access code was changed, but the application failed to refresh its state.',
       );
     } finally {
       setIsSaving(false);
@@ -87,6 +114,7 @@ const AccessCodeScreen = ({
     }
   };
 
+  // Reset access code.
   const handleReset = async () => {
     setError('');
     setSuccess('');
@@ -94,21 +122,34 @@ const AccessCodeScreen = ({
     setIsSaving(true);
     setSavingAction('reset');
 
+    // First: reset the code in Rust.
     try {
       await invoke<number>('reset_access_code');
-
-      await onAccessCodeChanged();
-
-      setCurrentCode('');
-      setNewCode('');
-      setConfirmCode('');
-
-      setSuccess('Access code successfully reset to default (123+=).');
     } catch (err) {
       setError(
         typeof err === 'string'
           ? err
           : 'Failed to reset access code.',
+      );
+
+      setIsSaving(false);
+      setSavingAction(null);
+      return;
+    }
+
+    // Rust successfully reset the code.
+    setCurrentCode('');
+    setNewCode('');
+    setConfirmCode('');
+
+    // Second: refresh application state.
+    try {
+      await onAccessCodeChanged();
+
+      setSuccess('Access code successfully reset to default (123+=).');
+    } catch {
+      setError(
+        'Access code was reset, but the application failed to refresh its state.',
       );
     } finally {
       setIsSaving(false);
@@ -133,110 +174,28 @@ const AccessCodeScreen = ({
           Allowed characters: digits and . + - * / % =
         </p>
 
-        <form className="access-code-form" onSubmit={handleSubmit}>
-          <label className="access-code-field">
-            <span>Current Code</span>
-            <div className="access-code-input-wrapper">
-              <input
-                type={showCurrentCode ? 'text' : 'password'}
-                value={currentCode}
-                onChange={(event) => setCurrentCode(event.target.value)}
-                autoComplete="current-password"
-                maxLength={64}
-                disabled={isSaving}
-                required
-              />
-
-              <button
-                type="button"
-                className="access-code-visibility"
-                onClick={() => setShowCurrentCode((value) => !value)}
-                aria-label={showCurrentCode ? 'Hide current code' : 'Show current code'}
-                aria-pressed={showCurrentCode}
-                disabled={isSaving}
-              >
-                <img
-                  className="access-code-visibility-icon"
-                  src={showCurrentCode ? eyeIcon : eyeOffIcon}
-                  alt=""
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-          </label>
-
-          <label className="access-code-field">
-            <span>New Code</span>
-            <div className="access-code-input-wrapper">
-              <input
-                type={showNewCode ? 'text' : 'password'}
-                value={newCode}
-                onChange={(event) => setNewCode(event.target.value)}
-                autoComplete="new-password"
-                maxLength={64}
-                disabled={isSaving}
-                required
-              />
-
-              <button
-                type="button"
-                className="access-code-visibility"
-                onClick={() => setShowNewCode((value) => !value)}
-                aria-label={showNewCode ? 'Hide new code' : 'Show new code'}
-                aria-pressed={showNewCode}
-                disabled={isSaving}
-              >
-                <img
-                  className="access-code-visibility-icon"
-                  src={showNewCode ? eyeIcon : eyeOffIcon}
-                  alt=""
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-          </label>
-
-          <label className="access-code-field">
-            <span>Confirm New Code</span>
-            <div className="access-code-input-wrapper">
-              <input
-                type={showConfirmCode ? 'text' : 'password'}
-                value={confirmCode}
-                onChange={(event) => setConfirmCode(event.target.value)}
-                autoComplete="new-password"
-                maxLength={64}
-                disabled={isSaving}
-                required
-              />
-
-              <button
-                type="button"
-                className="access-code-visibility"
-                onClick={() => setShowConfirmCode((value) => !value)}
-                aria-label={showConfirmCode ? 'Hide confirmation code' : 'Show confirmation code'}
-                aria-pressed={showConfirmCode}
-                disabled={isSaving}
-              >
-                <img
-                  className="access-code-visibility-icon"
-                  src={showConfirmCode ? eyeIcon : eyeOffIcon}
-                  alt=""
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-          </label>
-
-          <button
-            type="submit"
-            className="access-code-submit"
-            disabled={isSaving}
-          >
-            {isSaving && savingAction === 'change'
-              ? 'Saving...'
-              : 'Change Access Code'}
-          </button>
-        </form>
+        <AccessCodeForm
+          currentCode={currentCode}
+          newCode={newCode}
+          confirmCode={confirmCode}
+          onCurrentCodeChange={handleCurrentCodeChange}
+          onNewCodeChange={handleNewCodeChange}
+          onConfirmCodeChange={handleConfirmCodeChange}
+          showCurrentCode={showCurrentCode}
+          showNewCode={showNewCode}
+          showConfirmCode={showConfirmCode}
+          onToggleCurrentCode={() =>
+            setShowCurrentCode((value) => !value)
+          }
+          onToggleNewCode={() =>
+            setShowNewCode((value) => !value)
+          }
+          onToggleConfirmCode={() =>
+            setShowConfirmCode((value) => !value)
+          }
+          isSaving={isSaving}
+          onSubmit={handleSubmit}
+        />
 
         {error && (
           <p className="access-code-error" role="alert">
@@ -270,15 +229,10 @@ const AccessCodeScreen = ({
         </div>
       </section>
 
-      <footer className="settings-footer">
-        <button
-          type="button"
-          className="settings-close"
-          onClick={onBack}
-        >
-          Back to Settings
-        </button>
-      </footer>
+      <SettingsFooter
+        buttonText="Back to Settings"
+        onBack={onBack}
+      />
     </main>
   );
 };

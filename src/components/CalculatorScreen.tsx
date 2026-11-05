@@ -2,7 +2,7 @@
 
 import type {
   CalculatorKey,
-  CalculatorTheme,
+  CalculatorScreenProps
 } from '../types/calculator.types';
 
 const KEYS: CalculatorKey[] = [
@@ -12,14 +12,6 @@ const KEYS: CalculatorKey[] = [
   '1', '2', '3', '+',
   '0', '.', '=',
 ];
-
-interface CalculatorScreenProps {
-  display: string;
-  theme: CalculatorTheme;
-  settingsUnlocked: boolean;
-  onPress: (key: CalculatorKey) => void;
-  onOpenSettings: () => void;
-}
 
 const CalculatorScreen = ({
   display,
