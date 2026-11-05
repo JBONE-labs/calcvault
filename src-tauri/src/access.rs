@@ -1,3 +1,5 @@
+//TODO: need fix Factory Reset option and restore default state for app (default base CODE)
+
 use argon2::{
     password_hash::{
         PasswordHasher,
@@ -6,16 +8,29 @@ use argon2::{
     },
     Argon2,
 };
-use std::{fs, path::PathBuf};
+
+use std::{
+    fs,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
+
 use tauri::{AppHandle, Manager};
 
 const DEFAULT_CODE: &str = "123+=";
+const FACTORY_RESET_SEQUENCE: &str = "123777";
+
 const MIN_CODE_LENGTH: usize = 5;
 const MAX_CODE_LENGTH: usize = 64;
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| e.to_string())?;
+
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
     Ok(dir.join("access.hash"))
 }
 
@@ -39,6 +54,12 @@ fn validate_code(code: &str) -> Result<(), String> {
         );
     }
 
+    if code.contains(FACTORY_RESET_SEQUENCE) {
+        return Err(
+            "The sequence 123777 is reserved for Factory Reset".into()
+        );
+    }
+
     Ok(())
 }
 
@@ -59,10 +80,12 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
 
     if !path.exists() {
         let hash = hash_code(DEFAULT_CODE)?;
+
         save_hash(&path, DEFAULT_CODE, &hash)?;
     }
 
-    let contents = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let contents =
+        fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
     if let Some((length, hash)) = contents.split_once('\n') {
         if let Ok(length) = length.trim().parse::<usize>() {
@@ -73,6 +96,7 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
             {
                 PasswordHash::new(hash)
                     .map_err(|e| e.to_string())?;
+
                 return Ok((length, hash.to_owned()));
             }
         }
@@ -87,25 +111,37 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
         .is_ok()
     {
         let hash = contents.trim().to_owned();
+
         save_hash(&path, DEFAULT_CODE, &hash)?;
+
         return Ok((DEFAULT_CODE.len(), hash));
     }
 
     Err("Legacy configuration requires an access-code reset".into())
 }
 
-fn verify_code(app: &AppHandle, code: &str) -> Result<bool, String> {
+fn verify_code(
+    app: &AppHandle,
+    code: &str,
+) -> Result<bool, String> {
     let (_, stored_hash) = load_config(app)?;
-    let parsed = PasswordHash::new(&stored_hash).map_err(|e| e.to_string())?;
 
-    Ok(Argon2::default()
-        .verify_password(code.as_bytes(), &parsed)
-        .is_ok())
+    let parsed =
+        PasswordHash::new(&stored_hash).map_err(|e| e.to_string())?;
+
+    Ok(
+        Argon2::default()
+            .verify_password(code.as_bytes(), &parsed)
+            .is_ok()
+    )
 }
 
 #[tauri::command]
-pub fn get_access_code_length(app: AppHandle) -> Result<usize, String> {
+pub fn get_access_code_length(
+    app: AppHandle,
+) -> Result<usize, String> {
     let (length, _) = load_config(&app)?;
+
     Ok(length)
 }
 
@@ -115,6 +151,7 @@ pub fn verify_access_code(
     code: String,
 ) -> Result<bool, String> {
     validate_code(&code)?;
+
     verify_code(&app, &code)
 }
 
@@ -139,16 +176,131 @@ pub fn change_access_code(
     Ok(new_code.len())
 }
 
-/// Сбрасывает пользовательский код на стандартный 123+=.
-/// Для выполнения операции требуется ввести текущий код.
+// Удаляет каталог приложения, не переходя по символическим ссылкам.
+fn remove_app_directory(path: &Path) -> Result<(), String> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            return Ok(());
+        }
+
+        Err(error) => {
+            return Err(format!(
+                "Cannot inspect {}: {}",
+                path.display(),
+                error
+            ));
+        }
+    };
+
+    let result = if metadata.file_type().is_symlink() {
+        fs::remove_file(path)
+    } else if metadata.is_dir() {
+        fs::remove_dir_all(path)
+    } else {
+        fs::remove_file(path)
+    };
+
+    result.map_err(|error| {
+        format!(
+            "Cannot remove {}: {}",
+            path.display(),
+            error
+        )
+    })
+}
+
+// Собирает каталоги, принадлежащие приложению.
+// Если один каталог является родительским для другого,
+// удаляется только родительский каталог.
+fn get_cleanup_directories(
+    app: &AppHandle,
+) -> Result<Vec<PathBuf>, String> {
+    let path_resolver = app.path();
+
+    let mut directories = vec![
+        path_resolver
+            .app_config_dir()
+            .map_err(|e| e.to_string())?,
+
+        path_resolver
+            .app_data_dir()
+            .map_err(|e| e.to_string())?,
+
+        path_resolver
+            .app_local_data_dir()
+            .map_err(|e| e.to_string())?,
+
+        path_resolver
+            .app_cache_dir()
+            .map_err(|e| e.to_string())?,
+
+        path_resolver
+            .app_log_dir()
+            .map_err(|e| e.to_string())?,
+    ];
+
+    // Сначала идут более короткие пути.
+    directories.sort_by_key(|path| path.components().count());
+
+    let mut cleanup_roots: Vec<PathBuf> = Vec::new();
+
+    for directory in directories {
+        // Не добавляем каталог, если он уже находится
+        // внутри другого каталога, который будет удалён.
+        if cleanup_roots
+            .iter()
+            .any(|root| directory.starts_with(root))
+        {
+            continue;
+        }
+
+        cleanup_roots.push(directory);
+    }
+
+    Ok(cleanup_roots)
+}
+
+// Полный Factory Reset.
+// Удаление данных и восстановление стандартного кода
+// выполняются в одной Rust-команде.
 #[tauri::command]
-pub fn reset_access_code(
+pub fn factory_reset(
     app: AppHandle,
 ) -> Result<usize, String> {
-    let path = config_path(&app)?;
-    let hash = hash_code(DEFAULT_CODE)?;
+    // Сначала создаём новый хеш стандартного кода.
+    // Если хеширование завершится ошибкой, данные ещё не удалены.
+    let default_hash = hash_code(DEFAULT_CODE)?;
 
-    save_hash(&path, DEFAULT_CODE, &hash)?;
+    // Получаем все каталоги, принадлежащие приложению.
+    let directories = get_cleanup_directories(&app)?;
+
+    // Удаляем все каталоги приложения.
+    // Продолжаем обработку остальных каталогов даже при ошибке,
+    // чтобы по возможности удалить максимум данных.
+    let mut removal_errors: Vec<String> = Vec::new();
+
+    for directory in directories {
+        if let Err(error) = remove_app_directory(&directory) {
+            removal_errors.push(error);
+        }
+    }
+
+    // Не сообщаем об успешном Factory Reset,
+    // если хотя бы один каталог не удалось удалить.
+    if !removal_errors.is_empty() {
+        return Err(format!(
+            "Factory Reset incomplete: {}",
+            removal_errors.join("; ")
+        ));
+    }
+
+    // Создаём минимальную конфигурацию заново
+    // и восстанавливаем стандартный код доступа.
+    let path = config_path(&app)?;
+
+    save_hash(&path, DEFAULT_CODE, &default_hash)?;
 
     Ok(DEFAULT_CODE.len())
 }

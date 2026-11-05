@@ -16,7 +16,7 @@ pub fn run() {
             access::get_access_code_length,
             access::verify_access_code,
             access::change_access_code,
-            access::reset_access_code
+            access::factory_reset
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

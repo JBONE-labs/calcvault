@@ -1,11 +1,12 @@
-
-/* управляет состоянием экрана и вызывает Rust-команды. */
+/* Управляет экраном смены кода доступа. */
 
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+
 import AccessCodeForm from './AccessCodeForm';
 import SettingsFooter from './SettingsFooter';
+
 import type { AccessCodeScreenProps } from '../types/calculator.types';
 import { isValidAccessCode } from '../utils/accessCode.utils';
 
@@ -15,9 +16,6 @@ const AccessCodeScreen = ({
   onAccessCodeChanged,
 }: AccessCodeScreenProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const [savingAction, setSavingAction] = useState<'change' | 'reset' | null>(
-    null,
-  );
 
   const [currentCode, setCurrentCode] = useState('');
   const [newCode, setNewCode] = useState('');
@@ -30,7 +28,7 @@ const AccessCodeScreen = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Clear messages when any form field changes.
+  // Очищаем сообщения при изменении полей.
   const handleCurrentCodeChange = (value: string) => {
     setCurrentCode(value);
     setError('');
@@ -49,8 +47,10 @@ const AccessCodeScreen = ({
     setSuccess('');
   };
 
-  // Change access code.
-  const handleSubmit = async (event: SyntheticEvent<HTMLFormElement>) => {
+  // Смена кода доступа.
+  const handleSubmit = async (
+    event: SyntheticEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     setError('');
@@ -63,7 +63,7 @@ const AccessCodeScreen = ({
 
     if (!isValidAccessCode(newCode)) {
       setError(
-        'The new code must contain 5–64 characters. Allowed characters: digits and . + - * / % =',
+        'The new code must contain 5–64 characters. Allowed characters: digits and . + - * / % =. The Factory Reset sequence 123777 is reserved.',
       );
       return;
     }
@@ -74,10 +74,10 @@ const AccessCodeScreen = ({
     }
 
     setIsSaving(true);
-    setSavingAction('change');
 
-    // First: change the code in Rust.
     try {
+      // Rust самостоятельно проверяет текущий код
+      // и только после этого сохраняет новый.
       await invoke<number>('change_access_code', {
         currentCode,
         newCode,
@@ -90,16 +90,13 @@ const AccessCodeScreen = ({
       );
 
       setIsSaving(false);
-      setSavingAction(null);
       return;
     }
 
-    // Rust successfully changed the code.
     setCurrentCode('');
     setNewCode('');
     setConfirmCode('');
 
-    // Second: refresh application state.
     try {
       await onAccessCodeChanged();
 
@@ -110,50 +107,6 @@ const AccessCodeScreen = ({
       );
     } finally {
       setIsSaving(false);
-      setSavingAction(null);
-    }
-  };
-
-  // Reset access code.
-  const handleReset = async () => {
-    setError('');
-    setSuccess('');
-
-    setIsSaving(true);
-    setSavingAction('reset');
-
-    // First: reset the code in Rust.
-    try {
-      await invoke<number>('reset_access_code');
-    } catch (err) {
-      setError(
-        typeof err === 'string'
-          ? err
-          : 'Failed to reset access code.',
-      );
-
-      setIsSaving(false);
-      setSavingAction(null);
-      return;
-    }
-
-    // Rust successfully reset the code.
-    setCurrentCode('');
-    setNewCode('');
-    setConfirmCode('');
-
-    // Second: refresh application state.
-    try {
-      await onAccessCodeChanged();
-
-      setSuccess('Access code successfully reset to default (123+=).');
-    } catch {
-      setError(
-        'Access code was reset, but the application failed to refresh its state.',
-      );
-    } finally {
-      setIsSaving(false);
-      setSavingAction(null);
     }
   };
 
@@ -209,24 +162,18 @@ const AccessCodeScreen = ({
           </p>
         )}
 
-        <div className="access-code-reset">
-          <p className="access-code-hint">
-            Forgot access code? Reset it to the default code: 123+=.
-            <br />
-            No current code is required.
-          </p>
+        <section className="access-code-reset">
+          <h2>Factory Reset</h2>
 
-          <button
-            type="button"
-            className="access-code-reset-button"
-            onClick={handleReset}
-            disabled={isSaving}
-          >
-            {isSaving && savingAction === 'reset'
-              ? 'Resetting...'
-              : 'Reset to Default'}
-          </button>
-        </div>
+          <p className="access-code-hint">
+            If you forget your access code, enter 123777 on the calculator
+            screen. The application will immediately return to its initial
+            state and permanently delete all application data, including
+            accounts, encryption keys, settings, databases and user files.
+            <br />
+            The default access code will be restored to 123+=.
+          </p>
+        </section>
       </section>
 
       <SettingsFooter
