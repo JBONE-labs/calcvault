@@ -38,10 +38,7 @@ export const useAccessCode = () => {
 
   const codeLengthRef = useRef<number | null>(null);
 
-  // Последовательность для обычной проверки пароля.
   const sequenceRef = useRef('');
-
-  // Отдельная последовательность для Factory Reset.
   const factoryResetSequenceRef = useRef('');
 
   const verificationInProgressRef = useRef(false);
@@ -66,7 +63,7 @@ export const useAccessCode = () => {
     codeLengthRef.current = length;
   }, []);
 
-  // Загружаем длину кода при первом рендере.
+  // Загружает длину кода при первом запуске.
   useEffect(() => {
     let cancelled = false;
 
@@ -101,35 +98,36 @@ export const useAccessCode = () => {
     factoryResetSequenceRef.current = '';
   }, []);
 
-  // Выполняет полный Factory Reset одной Rust-командой.
+  // Выполняет Factory Reset.
   const executeFactoryReset = useCallback((): void => {
     if (factoryResetInProgressRef.current) {
       return;
     }
 
     factoryResetInProgressRef.current = true;
+    verificationInProgressRef.current = true;
 
+    // Немедленно блокируем Settings.
+    setSettingsUnlocked(false);
+
+    // Сбрасываем все последовательности ввода.
     sequenceRef.current = '';
     factoryResetSequenceRef.current = '';
 
-    verificationInProgressRef.current = true;
+    // До завершения Rust-команды не разрешаем новые проверки.
+    codeLengthRef.current = null;
 
     void invoke<number>('factory_reset')
       .then(() => {
-        // После успешного сброса приложение запускается заново.
-        // Начальное состояние и заблокированные настройки
-        // восстанавливаются при повторной инициализации React.
-        window.location.reload();
+        console.info('Factory Reset completed successfully.');
       })
       .catch((error: unknown) => {
         console.error('Factory Reset failed:', error);
-
-        // При ошибке разрешаем повторную попытку.
-        factoryResetInProgressRef.current = false;
-        verificationInProgressRef.current = false;
-
-        sequenceRef.current = '';
-        factoryResetSequenceRef.current = '';
+      })
+      .finally(() => {
+        // Перезагружаем приложение и после успеха, и после ошибки.
+        // Rust-команда в обоих случаях уже завершила выполнение.
+        window.location.reload();
       });
   }, []);
 
@@ -148,7 +146,6 @@ export const useAccessCode = () => {
       code: candidate,
     })
       .then((isValid) => {
-        // Не меняем состояние интерфейса, если уже начался Factory Reset.
         if (isValid && !factoryResetInProgressRef.current) {
           setSettingsUnlocked((current) => !current);
         }
@@ -161,7 +158,7 @@ export const useAccessCode = () => {
       });
   }, []);
 
-  // Обрабатывает каждое нажатие клавиши калькулятора.
+  // Обрабатывает нажатия клавиш калькулятора.
   const trackAccessKey = useCallback(
     (key: CalculatorKey): void => {
       if (factoryResetInProgressRef.current) {
@@ -170,16 +167,15 @@ export const useAccessCode = () => {
 
       const character = getAccessCharacter(key);
 
-      // C и ± сбрасывают обе последовательности.
+      // C и ± сбрасывают последовательности.
       if (character === null) {
         sequenceRef.current = '';
         factoryResetSequenceRef.current = '';
         return;
       }
 
-      // Сначала проверяем специальную последовательность Factory Reset.
-      // Она работает независимо от длины обычного пароля и состояния
-      // текущей проверки пароля.
+      // Специальная последовательность проверяется независимо
+      // от длины обычного пароля и состояния Settings.
       factoryResetSequenceRef.current = (
         factoryResetSequenceRef.current + character
       ).slice(-FACTORY_RESET_SEQUENCE.length);
@@ -191,15 +187,14 @@ export const useAccessCode = () => {
         return;
       }
 
-      // Если уже проверяется обычный пароль, не запускаем вторую проверку.
-      // Проверка Factory Reset выше всё равно продолжает работать.
+      // Не запускаем повторную обычную проверку,
+      // пока предыдущая проверка не завершилась.
       if (verificationInProgressRef.current) {
         return;
       }
 
       const codeLength = codeLengthRef.current;
 
-      // Обычный пароль проверяем только после загрузки его длины.
       if (codeLength === null) {
         return;
       }
@@ -210,7 +205,6 @@ export const useAccessCode = () => {
         return;
       }
 
-      // Проверяем последние N символов.
       const candidate = sequenceRef.current.slice(-codeLength);
 
       sequenceRef.current = '';

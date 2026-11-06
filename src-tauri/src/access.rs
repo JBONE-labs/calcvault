@@ -1,5 +1,3 @@
-//TODO: need fix Factory Reset option and restore default state for app (default base CODE)
-
 use argon2::{
     password_hash::{
         PasswordHasher,
@@ -63,9 +61,9 @@ fn validate_code(code: &str) -> Result<(), String> {
     Ok(())
 }
 
-// File format:
-// first line: code length
-// second line: Argon2 PHC hash
+// Формат файла:
+// первая строка — длина кода;
+// вторая строка — Argon2 PHC hash.
 fn save_hash(
     path: &PathBuf,
     code: &str,
@@ -80,7 +78,6 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
 
     if !path.exists() {
         let hash = hash_code(DEFAULT_CODE)?;
-
         save_hash(&path, DEFAULT_CODE, &hash)?;
     }
 
@@ -102,7 +99,7 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
         }
     }
 
-    // Migration of the previous format, which stored only the hash.
+    // Миграция старого формата, в котором хранился только хеш.
     let legacy_hash = PasswordHash::new(contents.trim())
         .map_err(|_| "Invalid access-code configuration".to_string())?;
 
@@ -176,8 +173,9 @@ pub fn change_access_code(
     Ok(new_code.len())
 }
 
-// Удаляет каталог приложения, не переходя по символическим ссылкам.
-fn remove_app_directory(path: &Path) -> Result<(), String> {
+// Удаляет файл, символическую ссылку или каталог.
+// Символические ссылки не обходятся.
+fn remove_app_entry(path: &Path) -> Result<(), String> {
     let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
 
@@ -211,9 +209,46 @@ fn remove_app_directory(path: &Path) -> Result<(), String> {
     })
 }
 
+// Очищает содержимое каталога, не удаляя сам каталог.
+fn clear_directory_contents(path: &Path) -> Result<(), String> {
+    let entries = fs::read_dir(path).map_err(|error| {
+        format!(
+            "Cannot read directory {}: {}",
+            path.display(),
+            error
+        )
+    })?;
+
+    let mut removal_errors = Vec::new();
+
+    for entry in entries {
+        match entry {
+            Ok(entry) => {
+                if let Err(error) = remove_app_entry(&entry.path()) {
+                    removal_errors.push(error);
+                }
+            }
+
+            Err(error) => {
+                removal_errors.push(format!(
+                    "Cannot read entry in {}: {}",
+                    path.display(),
+                    error
+                ));
+            }
+        }
+    }
+
+    if !removal_errors.is_empty() {
+        return Err(removal_errors.join("; "));
+    }
+
+    Ok(())
+}
+
 // Собирает каталоги, принадлежащие приложению.
-// Если один каталог является родительским для другого,
-// удаляется только родительский каталог.
+// Вложенные каталоги отдельно не добавляются,
+// если их родительский каталог уже включён.
 fn get_cleanup_directories(
     app: &AppHandle,
 ) -> Result<Vec<PathBuf>, String> {
@@ -241,14 +276,11 @@ fn get_cleanup_directories(
             .map_err(|e| e.to_string())?,
     ];
 
-    // Сначала идут более короткие пути.
     directories.sort_by_key(|path| path.components().count());
 
     let mut cleanup_roots: Vec<PathBuf> = Vec::new();
 
     for directory in directories {
-        // Не добавляем каталог, если он уже находится
-        // внутри другого каталога, который будет удалён.
         if cleanup_roots
             .iter()
             .any(|root| directory.starts_with(root))
@@ -263,44 +295,85 @@ fn get_cleanup_directories(
 }
 
 // Полный Factory Reset.
-// Удаление данных и восстановление стандартного кода
-// выполняются в одной Rust-команде.
 #[tauri::command]
 pub fn factory_reset(
     app: AppHandle,
 ) -> Result<usize, String> {
-    // Сначала создаём новый хеш стандартного кода.
-    // Если хеширование завершится ошибкой, данные ещё не удалены.
+    // Подготавливаем хеш стандартного кода до очистки.
     let default_hash = hash_code(DEFAULT_CODE)?;
 
-    // Получаем все каталоги, принадлежащие приложению.
+    // Получаем каталоги приложения.
     let directories = get_cleanup_directories(&app)?;
 
-    // Удаляем все каталоги приложения.
-    // Продолжаем обработку остальных каталогов даже при ошибке,
-    // чтобы по возможности удалить максимум данных.
+    // На Android app_local_data_dir может указывать
+    // непосредственно на корень песочницы приложения.
+    // Сам корень удалять нельзя: Android запрещает это.
+    let android_app_root = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| e.to_string())?;
+
     let mut removal_errors: Vec<String> = Vec::new();
 
     for directory in directories {
-        if let Err(error) = remove_app_directory(&directory) {
+        #[cfg(target_os = "android")]
+        let result = {
+            if directory == android_app_root {
+                // Сохраняем корень приложения,
+                // удаляем только его содержимое.
+                clear_directory_contents(&directory)
+            } else {
+                remove_app_entry(&directory)
+            }
+        };
+
+        #[cfg(not(target_os = "android"))]
+        let result = remove_app_entry(&directory);
+
+        if let Err(error) = result {
             removal_errors.push(error);
         }
     }
 
-    // Не сообщаем об успешном Factory Reset,
-    // если хотя бы один каталог не удалось удалить.
+    // Восстанавливаем каталог конфигурации.
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| {
+            format!(
+                "Cannot resolve configuration directory: {}",
+                e
+            )
+        })?;
+
+    fs::create_dir_all(&config_dir).map_err(|e| {
+        format!(
+            "Cannot recreate configuration directory {}: {}",
+            config_dir.display(),
+            e
+        )
+    })?;
+
+    // Восстанавливаем стандартный код доступа.
+    let access_file = config_dir.join("access.hash");
+
+    save_hash(&access_file, DEFAULT_CODE, &default_hash)
+        .map_err(|e| {
+            format!(
+                "Cannot restore default access code: {}",
+                e
+            )
+        })?;
+
+    // Сообщаем об ошибках только после восстановления кода.
     if !removal_errors.is_empty() {
         return Err(format!(
-            "Factory Reset incomplete: {}",
+            "Factory Reset partially completed. \
+             The default access code 123+= was restored, \
+             but some application data could not be removed: {}",
             removal_errors.join("; ")
         ));
     }
-
-    // Создаём минимальную конфигурацию заново
-    // и восстанавливаем стандартный код доступа.
-    let path = config_path(&app)?;
-
-    save_hash(&path, DEFAULT_CODE, &default_hash)?;
 
     Ok(DEFAULT_CODE.len())
 }
