@@ -1,5 +1,8 @@
 /* Управляет экраном смены кода доступа. */
 
+
+/* Управляет экраном смены кода доступа. */
+
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
@@ -76,8 +79,6 @@ const AccessCodeScreen = ({
     setIsSaving(true);
 
     try {
-      // Rust самостоятельно проверяет текущий код
-      // и только после этого сохраняет новый.
       await invoke<number>('change_access_code', {
         currentCode,
         newCode,
@@ -162,7 +163,7 @@ const AccessCodeScreen = ({
           </p>
         )}
 
-        <section className="access-code-reset">
+        <section className="factory-reset-info">
           <h2>Factory Reset</h2>
 
           <p className="access-code-hint">

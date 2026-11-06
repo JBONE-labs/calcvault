@@ -1,4 +1,5 @@
-/* хук, который отслеживает последовательность нажатий, проверяет введённый код доступа и управляет состоянием разблокировки настроек либо возвратом к дефолтному состоянию. */
+
+/* хук, который отслеживает последовательность нажатий, проверяет код доступа и управляет разблокировкой настроек и Factory Reset. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
@@ -8,6 +9,7 @@ const MIN_CODE_LENGTH = 5;
 const MAX_CODE_LENGTH = 64;
 
 const FACTORY_RESET_SEQUENCE = '123777';
+const THEME_STORAGE_KEY = 'calcvault.theme';
 
 const getAccessCharacter = (key: CalculatorKey): string | null => {
   if (/^[0-9]$/.test(key)) {
@@ -120,13 +122,19 @@ export const useAccessCode = () => {
     void invoke<number>('factory_reset')
       .then(() => {
         console.info('Factory Reset completed successfully.');
+
+        // Удаляем сохранённую тему при успешном сбросе.
+        try {
+          window.localStorage.removeItem(THEME_STORAGE_KEY);
+        } catch (error) {
+          console.error('Failed to clear saved theme:', error);
+        }
       })
       .catch((error: unknown) => {
         console.error('Factory Reset failed:', error);
       })
       .finally(() => {
-        // Перезагружаем приложение и после успеха, и после ошибки.
-        // Rust-команда в обоих случаях уже завершила выполнение.
+        // Перезагружаем приложение после завершения Rust-команды.
         window.location.reload();
       });
   }, []);
