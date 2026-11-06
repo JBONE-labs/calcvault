@@ -1,8 +1,5 @@
 /* Управляет экраном смены кода доступа. */
 
-
-/* Управляет экраном смены кода доступа. */
-
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
