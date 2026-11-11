@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "calcvault",
+  "productName": "calculator",
   "version": "0.1.0",
   "identifier": "com.calcvault.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "calcvault",
+        "title": "calculacltor",
         "width": 800,
         "height": 600
       }

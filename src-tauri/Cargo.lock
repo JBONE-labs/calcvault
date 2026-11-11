@@ -411,7 +411,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "calcvault"
+name = "calculator"
 version = "0.1.0"
 dependencies = [
  "argon2",
