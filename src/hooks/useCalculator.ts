@@ -19,6 +19,7 @@ export const useCalculator = () => {
   const [prev, setPrev] = useState<number | null>(null);
   const [op, setOp] = useState<Operator | null>(null);
   const [reset, setReset] = useState(false);
+  const DIVIDE_BY_ZERO_MESSAGE = "Can't divide by 0";
 
   const {
     settingsUnlocked,
@@ -35,6 +36,10 @@ export const useCalculator = () => {
       setPrev(null);
       setOp(null);
       setReset(false);
+      return;
+    }
+
+    if (key === '±' && display === DIVIDE_BY_ZERO_MESSAGE) {
       return;
     }
 
@@ -63,7 +68,7 @@ export const useCalculator = () => {
       const b = Number(display);
 
       if (op === '÷' && b === 0) {
-        setDisplay("Can't divide by 0");
+        setDisplay(DIVIDE_BY_ZERO_MESSAGE);
         setPrev(null);
         setOp(null);
         setReset(true);
@@ -95,7 +100,7 @@ export const useCalculator = () => {
     if (
       reset ||
       display === '0' ||
-      display === "Can't divide by 0"
+      display === DIVIDE_BY_ZERO_MESSAGE
     ) {
       setDisplay(key);
       setReset(false);
