@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">"calcvault"</string>
-    <string name="main_activity_title">"calcvault"</string>
+    <string name="app_name">"Calculator"</string>
+    <string name="main_activity_title">"Calculator"</string>
 </resources>
