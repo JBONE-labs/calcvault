@@ -11,6 +11,20 @@ const MAX_CODE_LENGTH = 64;
 const FACTORY_RESET_SEQUENCE = '123777';
 const THEME_STORAGE_KEY = 'calcvault.theme';
 
+const loadAccessCodeLength = async (): Promise<number> => {
+  const length = await invoke<number>('get_access_code_length');
+
+  if (
+    !Number.isInteger(length) ||
+    length < MIN_CODE_LENGTH ||
+    length > MAX_CODE_LENGTH
+  ) {
+    throw new Error('Invalid access-code length');
+  }
+
+  return length;
+};
+
 const getAccessCharacter = (key: CalculatorKey): string | null => {
   if (/^[0-9]$/.test(key)) {
     return key;
@@ -52,35 +66,17 @@ export const useAccessCode = () => {
     sequenceRef.current = '';
     factoryResetSequenceRef.current = '';
 
-    const length = await invoke<number>('get_access_code_length');
-
-    if (
-      !Number.isInteger(length) ||
-      length < MIN_CODE_LENGTH ||
-      length > MAX_CODE_LENGTH
-    ) {
-      throw new Error('Invalid access-code length');
-    }
-
-    codeLengthRef.current = length;
+    codeLengthRef.current = await loadAccessCodeLength();
   }, []);
 
   // Загружает длину кода при первом запуске.
   useEffect(() => {
     let cancelled = false;
 
-    invoke<number>('get_access_code_length')
+    loadAccessCodeLength()
       .then((length) => {
-        if (cancelled) return;
-
-        if (
-          Number.isInteger(length) &&
-          length >= MIN_CODE_LENGTH &&
-          length <= MAX_CODE_LENGTH
-        ) {
+        if (!cancelled) {
           codeLengthRef.current = length;
-        } else {
-          console.error('Invalid access-code length');
         }
       })
       .catch((error: unknown) => {
@@ -92,12 +88,6 @@ export const useAccessCode = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  // Очищает последовательности ввода.
-  const resetAccessSequence = useCallback((): void => {
-    sequenceRef.current = '';
-    factoryResetSequenceRef.current = '';
   }, []);
 
   // Выполняет Factory Reset.
@@ -225,7 +215,6 @@ export const useAccessCode = () => {
   return {
     settingsUnlocked,
     trackAccessKey,
-    resetAccessSequence,
     refreshAccessCodeLength,
   };
 };

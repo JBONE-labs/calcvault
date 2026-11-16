@@ -28,24 +28,17 @@ const AccessCodeScreen = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Очищаем сообщения при изменении полей.
-  const handleCurrentCodeChange = (value: string) => {
-    setCurrentCode(value);
-    setError('');
-    setSuccess('');
-  };
+  const createCodeChangeHandler =
+    (setCode: (value: string) => void) =>
+      (value: string): void => {
+        setCode(value);
+        setError('');
+        setSuccess('');
+      };
 
-  const handleNewCodeChange = (value: string) => {
-    setNewCode(value);
-    setError('');
-    setSuccess('');
-  };
-
-  const handleConfirmCodeChange = (value: string) => {
-    setConfirmCode(value);
-    setError('');
-    setSuccess('');
-  };
+  const handleCurrentCodeChange = createCodeChangeHandler(setCurrentCode);
+  const handleNewCodeChange = createCodeChangeHandler(setNewCode);
+  const handleConfirmCodeChange = createCodeChangeHandler(setConfirmCode);
 
   // Смена кода доступа.
   const handleSubmit = async (

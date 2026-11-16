@@ -13,6 +13,28 @@ const KEYS: CalculatorKey[] = [
   '0', '.', '=',
 ];
 
+const getKeyClassName = (key: CalculatorKey): string => {
+  const classes = ['key'];
+
+  if (['C', '±', '%'].includes(key)) {
+    classes.push('function');
+  }
+
+  if (['÷', '×', '-', '+'].includes(key)) {
+    classes.push('operator');
+  }
+
+  if (key === '=') {
+    classes.push('equals');
+  }
+
+  if (key === '0') {
+    classes.push('zero');
+  }
+
+  return classes.join(' ');
+};
+
 const CalculatorScreen = ({
   display,
   theme,
@@ -40,13 +62,7 @@ const CalculatorScreen = ({
         {KEYS.map((key) => (
           <button
             key={key}
-            className={[
-              'key',
-              ['C', '±', '%'].includes(key) ? 'function' : '',
-              ['÷', '×', '-', '+'].includes(key) ? 'operator' : '',
-              key === '=' ? 'equals' : '',
-              key === '0' ? 'zero' : '',
-            ].filter(Boolean).join(' ')}
+            className={getKeyClassName(key)}
             onClick={() => onPress(key)}
           >
             {key}

@@ -25,7 +25,6 @@
   --border: #353535;
   --control-background: #333333;
   --control-text: #ffffff;
-  --secondary-text: #d0d0d0;
 
   background: var(--background);
   color: var(--text);
@@ -56,5 +55,4 @@
   --border: #383838;
   --control-background: #1c1c1e;
   --control-text: #ffffff;
-  --secondary-text: #aeaeb2;
 }
