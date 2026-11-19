@@ -210,6 +210,7 @@ fn remove_app_entry(path: &Path) -> Result<(), String> {
 }
 
 // Очищает содержимое каталога, не удаляя сам каталог.
+#[cfg(target_os = "android")]
 fn clear_directory_contents(path: &Path) -> Result<(), String> {
     let entries = fs::read_dir(path).map_err(|error| {
         format!(
@@ -308,6 +309,7 @@ pub fn factory_reset(
     // На Android app_local_data_dir может указывать
     // непосредственно на корень песочницы приложения.
     // Сам корень удалять нельзя: Android запрещает это.
+    #[cfg(target_os = "android")]
     let android_app_root = app
         .path()
         .app_local_data_dir()
@@ -376,4 +378,66 @@ pub fn factory_reset(
     }
 
     Ok(DEFAULT_CODE.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use argon2::password_hash::PasswordVerifier;
+
+    #[test]
+    fn accepts_default_access_code() {
+        assert!(validate_code(DEFAULT_CODE).is_ok());
+    }
+
+    #[test]
+    fn accepts_code_at_maximum_length() {
+        let code = "1".repeat(MAX_CODE_LENGTH);
+
+        assert!(validate_code(&code).is_ok());
+    }
+
+    #[test]
+    fn rejects_code_shorter_than_minimum_length() {
+        assert!(validate_code("1234").is_err());
+    }
+
+    #[test]
+    fn rejects_code_longer_than_maximum_length() {
+        let code = "1".repeat(MAX_CODE_LENGTH + 1);
+
+        assert!(validate_code(&code).is_err());
+    }
+
+    #[test]
+    fn rejects_disallowed_characters() {
+        assert!(validate_code("12ab3").is_err());
+        assert!(validate_code("12 34").is_err());
+    }
+
+    #[test]
+    fn rejects_factory_reset_sequence() {
+        assert!(validate_code(FACTORY_RESET_SEQUENCE).is_err());
+        assert!(validate_code("991237771").is_err());
+    }
+
+    #[test]
+    fn hash_code_creates_a_verifiable_argon2_hash() {
+        let code = "123+=";
+        let hash = hash_code(code).expect("hashing should succeed");
+        let parsed_hash =
+            PasswordHash::new(&hash).expect("hash should use PHC format");
+
+        assert!(
+            Argon2::default()
+                .verify_password(code.as_bytes(), &parsed_hash)
+                .is_ok()
+        );
+
+        assert!(
+            Argon2::default()
+                .verify_password(b"wrong-code", &parsed_hash)
+                .is_err()
+        );
+    }
 }
