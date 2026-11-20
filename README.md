@@ -12,6 +12,8 @@ This project is not yet a finished product. Features and stability are still bei
 
 Once development is complete, the status will be updated to **READY TO USE**.
 
+After that, first release .apk will be added.
+
 ---
 
 <p align="center">
