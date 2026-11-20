@@ -84,6 +84,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          AHEAD_BY=$(gh api \
+            "repos/$GH_REPO/compare/main...test-ci" \
+            --jq '.ahead_by')
+
+          if [ "$AHEAD_BY" -eq 0 ]; then
+            echo "No new commits between test-ci and main. PR is not needed."
+            exit 0
+          fi
+
           EXISTING_PR=$(gh pr list \
             --head test-ci \
             --base main \
