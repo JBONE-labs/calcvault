@@ -9,11 +9,12 @@ use argon2::{
 
 use std::{
     fs,
-    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
 use tauri::{AppHandle, Manager};
+
+use crate::cleanup;
 
 const DEFAULT_CODE: &str = "123+=";
 const FACTORY_RESET_SEQUENCE: &str = "123777";
@@ -65,7 +66,7 @@ fn validate_code(code: &str) -> Result<(), String> {
 // первая строка — длина кода;
 // вторая строка — Argon2 PHC hash.
 fn save_hash(
-    path: &PathBuf,
+    path: &Path,
     code: &str,
     hash: &str,
 ) -> Result<(), String> {
@@ -173,129 +174,6 @@ pub fn change_access_code(
     Ok(new_code.len())
 }
 
-// Удаляет файл, символическую ссылку или каталог.
-// Символические ссылки не обходятся.
-fn remove_app_entry(path: &Path) -> Result<(), String> {
-    let metadata = match fs::symlink_metadata(path) {
-        Ok(metadata) => metadata,
-
-        Err(error) if error.kind() == ErrorKind::NotFound => {
-            return Ok(());
-        }
-
-        Err(error) => {
-            return Err(format!(
-                "Cannot inspect {}: {}",
-                path.display(),
-                error
-            ));
-        }
-    };
-
-    let result = if metadata.file_type().is_symlink() {
-        fs::remove_file(path)
-    } else if metadata.is_dir() {
-        fs::remove_dir_all(path)
-    } else {
-        fs::remove_file(path)
-    };
-
-    result.map_err(|error| {
-        format!(
-            "Cannot remove {}: {}",
-            path.display(),
-            error
-        )
-    })
-}
-
-// Очищает содержимое каталога, не удаляя сам каталог.
-#[cfg(target_os = "android")]
-fn clear_directory_contents(path: &Path) -> Result<(), String> {
-    let entries = fs::read_dir(path).map_err(|error| {
-        format!(
-            "Cannot read directory {}: {}",
-            path.display(),
-            error
-        )
-    })?;
-
-    let mut removal_errors = Vec::new();
-
-    for entry in entries {
-        match entry {
-            Ok(entry) => {
-                if let Err(error) = remove_app_entry(&entry.path()) {
-                    removal_errors.push(error);
-                }
-            }
-
-            Err(error) => {
-                removal_errors.push(format!(
-                    "Cannot read entry in {}: {}",
-                    path.display(),
-                    error
-                ));
-            }
-        }
-    }
-
-    if !removal_errors.is_empty() {
-        return Err(removal_errors.join("; "));
-    }
-
-    Ok(())
-}
-
-// Собирает каталоги, принадлежащие приложению.
-// Вложенные каталоги отдельно не добавляются,
-// если их родительский каталог уже включён.
-fn get_cleanup_directories(
-    app: &AppHandle,
-) -> Result<Vec<PathBuf>, String> {
-    let path_resolver = app.path();
-
-    let mut directories = vec![
-        path_resolver
-            .app_config_dir()
-            .map_err(|e| e.to_string())?,
-
-        path_resolver
-            .app_data_dir()
-            .map_err(|e| e.to_string())?,
-
-        path_resolver
-            .app_local_data_dir()
-            .map_err(|e| e.to_string())?,
-
-        path_resolver
-            .app_cache_dir()
-            .map_err(|e| e.to_string())?,
-
-        path_resolver
-            .app_log_dir()
-            .map_err(|e| e.to_string())?,
-    ];
-
-    directories.sort_by_key(|path| path.components().count());
-
-    let mut cleanup_roots: Vec<PathBuf> = Vec::new();
-
-    for directory in directories {
-        if cleanup_roots
-            .iter()
-            .any(|root| directory.starts_with(root))
-        {
-            continue;
-        }
-
-        cleanup_roots.push(directory);
-    }
-
-    Ok(cleanup_roots)
-}
-
-// Полный Factory Reset.
 #[tauri::command]
 pub fn factory_reset(
     app: AppHandle,
@@ -304,7 +182,7 @@ pub fn factory_reset(
     let default_hash = hash_code(DEFAULT_CODE)?;
 
     // Получаем каталоги приложения.
-    let directories = get_cleanup_directories(&app)?;
+    let directories = cleanup::get_cleanup_directories(&app)?;
 
     // На Android app_local_data_dir может указывать
     // непосредственно на корень песочницы приложения.
@@ -323,14 +201,14 @@ pub fn factory_reset(
             if directory == android_app_root {
                 // Сохраняем корень приложения,
                 // удаляем только его содержимое.
-                clear_directory_contents(&directory)
+                cleanup::clear_directory_contents(&directory)
             } else {
-                remove_app_entry(&directory)
+                cleanup::remove_app_entry(&directory)
             }
         };
 
         #[cfg(not(target_os = "android"))]
-        let result = remove_app_entry(&directory);
+        let result = cleanup::remove_app_entry(&directory);
 
         if let Err(error) = result {
             removal_errors.push(error);
@@ -406,7 +284,7 @@ mod tests {
     fn rejects_code_longer_than_maximum_length() {
         let code = "1".repeat(MAX_CODE_LENGTH + 1);
 
-        assert!(validate_code(&code).is_err());
+        assert!(validate_code(&code).is_ok() == false);
     }
 
     #[test]
