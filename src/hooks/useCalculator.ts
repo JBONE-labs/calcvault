@@ -54,7 +54,15 @@ export const useCalculator = () => {
     }
 
     if (['+', '-', '×', '÷'].includes(key)) {
-      setPrev(Number(display));
+      const value = Number(display);
+
+      // Не сохраняем NaN или Infinity как операнд.
+      // Например, это не даст принять сообщение об ошибке за число.
+      if (!Number.isFinite(value)) {
+        return;
+      }
+
+      setPrev(value);
       setOp(key as Operator);
       setReset(true);
       return;
