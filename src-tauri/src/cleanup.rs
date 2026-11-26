@@ -19,11 +19,7 @@ pub(super) fn remove_app_entry(path: &Path) -> Result<(), String> {
         }
 
         Err(error) => {
-            return Err(format!(
-                "Cannot inspect {}: {}",
-                path.display(),
-                error
-            ));
+            return Err(format!("Cannot inspect {}: {}", path.display(), error));
         }
     };
 
@@ -35,13 +31,7 @@ pub(super) fn remove_app_entry(path: &Path) -> Result<(), String> {
         fs::remove_file(path)
     };
 
-    result.map_err(|error| {
-        format!(
-            "Cannot remove {}: {}",
-            path.display(),
-            error
-        )
-    })
+    result.map_err(|error| format!("Cannot remove {}: {}", path.display(), error))
 }
 
 /// Очищает содержимое каталога, не удаляя сам каталог.
@@ -49,9 +39,8 @@ pub(super) fn remove_app_entry(path: &Path) -> Result<(), String> {
 /// непосредственно на корень песочницы приложения.
 #[cfg(target_os = "android")]
 pub(super) fn clear_directory_contents(path: &Path) -> Result<(), String> {
-    let entries = fs::read_dir(path).map_err(|error| {
-        format!("Cannot read directory {}: {}", path.display(), error)
-    })?;
+    let entries = fs::read_dir(path)
+        .map_err(|error| format!("Cannot read directory {}: {}", path.display(), error))?;
 
     let mut removal_errors = Vec::new();
 
@@ -83,27 +72,17 @@ pub(super) fn clear_directory_contents(path: &Path) -> Result<(), String> {
 /// Собирает каталоги, принадлежащие приложению.
 /// Вложенные каталоги опускаются, если их родитель уже включён
 /// в список очистки.
-pub(super) fn get_cleanup_directories(
-    app: &AppHandle,
-) -> Result<Vec<PathBuf>, String> {
+pub(super) fn get_cleanup_directories(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
     let path_resolver = app.path();
 
     let mut directories = vec![
-        path_resolver
-            .app_config_dir()
-            .map_err(|e| e.to_string())?,
-        path_resolver
-            .app_data_dir()
-            .map_err(|e| e.to_string())?,
+        path_resolver.app_config_dir().map_err(|e| e.to_string())?,
+        path_resolver.app_data_dir().map_err(|e| e.to_string())?,
         path_resolver
             .app_local_data_dir()
             .map_err(|e| e.to_string())?,
-        path_resolver
-            .app_cache_dir()
-            .map_err(|e| e.to_string())?,
-        path_resolver
-            .app_log_dir()
-            .map_err(|e| e.to_string())?,
+        path_resolver.app_cache_dir().map_err(|e| e.to_string())?,
+        path_resolver.app_log_dir().map_err(|e| e.to_string())?,
     ];
 
     directories.sort_by_key(|path| path.components().count());
@@ -111,10 +90,7 @@ pub(super) fn get_cleanup_directories(
     let mut cleanup_roots: Vec<PathBuf> = Vec::new();
 
     for directory in directories {
-        if cleanup_roots
-            .iter()
-            .any(|root| directory.starts_with(root))
-        {
+        if cleanup_roots.iter().any(|root| directory.starts_with(root)) {
             continue;
         }
 
@@ -131,8 +107,7 @@ mod tests {
 
     #[test]
     fn removes_missing_entry_without_error() {
-        let path = std::env::temp_dir()
-            .join("calcvault_missing_cleanup_test");
+        let path = std::env::temp_dir().join("calcvault_missing_cleanup_test");
 
         let _ = fs::remove_dir_all(&path);
 
@@ -141,8 +116,7 @@ mod tests {
 
     #[test]
     fn removes_file() {
-        let root = std::env::temp_dir()
-            .join("calcvault_file_cleanup_test");
+        let root = std::env::temp_dir().join("calcvault_file_cleanup_test");
 
         let _ = fs::remove_file(&root);
         fs::write(&root, "test").unwrap();
@@ -153,8 +127,7 @@ mod tests {
 
     #[test]
     fn removes_directory_recursively() {
-        let root = std::env::temp_dir()
-            .join("calcvault_directory_cleanup_test");
+        let root = std::env::temp_dir().join("calcvault_directory_cleanup_test");
 
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("nested")).unwrap();
@@ -167,8 +140,7 @@ mod tests {
     #[cfg(target_os = "android")]
     #[test]
     fn clears_directory_contents_but_keeps_directory() {
-        let root = std::env::temp_dir()
-            .join("calcvault_android_cleanup_test");
+        let root = std::env::temp_dir().join("calcvault_android_cleanup_test");
 
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(&root).unwrap();
