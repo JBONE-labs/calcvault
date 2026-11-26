@@ -1,10 +1,6 @@
 use argon2::{
-    password_hash::{
-        PasswordHasher,
-        PasswordVerifier,
-        phc::PasswordHash,
-    },
     Argon2,
+    password_hash::{PasswordHasher, PasswordVerifier, phc::PasswordHash},
 };
 
 use std::{
@@ -23,10 +19,7 @@ const MIN_CODE_LENGTH: usize = 5;
 const MAX_CODE_LENGTH: usize = 64;
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| e.to_string())?;
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
 
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
@@ -41,22 +34,16 @@ fn hash_code(code: &str) -> Result<String, String> {
 }
 
 fn validate_code(code: &str) -> Result<(), String> {
-    let allowed = code.bytes().all(|b| {
-        b.is_ascii_digit() || b".+-*/%=".contains(&b)
-    });
+    let allowed = code
+        .bytes()
+        .all(|b| b.is_ascii_digit() || b".+-*/%=".contains(&b));
 
-    if !(MIN_CODE_LENGTH..=MAX_CODE_LENGTH).contains(&code.len())
-        || !allowed
-    {
-        return Err(
-            "Code must contain 5–64 digits or calculator operators".into()
-        );
+    if !(MIN_CODE_LENGTH..=MAX_CODE_LENGTH).contains(&code.len()) || !allowed {
+        return Err("Code must contain 5–64 digits or calculator operators".into());
     }
 
     if code.contains(FACTORY_RESET_SEQUENCE) {
-        return Err(
-            "The sequence 123777 is reserved for Factory Reset".into()
-        );
+        return Err("The sequence 123777 is reserved for Factory Reset".into());
     }
 
     Ok(())
@@ -65,13 +52,8 @@ fn validate_code(code: &str) -> Result<(), String> {
 // Формат файла:
 // первая строка — длина кода;
 // вторая строка — Argon2 PHC hash.
-fn save_hash(
-    path: &Path,
-    code: &str,
-    hash: &str,
-) -> Result<(), String> {
-    fs::write(path, format!("{}\n{}", code.len(), hash))
-        .map_err(|e| e.to_string())
+fn save_hash(path: &Path, code: &str, hash: &str) -> Result<(), String> {
+    fs::write(path, format!("{}\n{}", code.len(), hash)).map_err(|e| e.to_string())
 }
 
 fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
@@ -82,18 +64,14 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
         save_hash(&path, DEFAULT_CODE, &hash)?;
     }
 
-    let contents =
-        fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let contents = fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
     if let Some((length, hash)) = contents.split_once('\n') {
         if let Ok(length) = length.trim().parse::<usize>() {
             let hash = hash.trim();
 
-            if (MIN_CODE_LENGTH..=MAX_CODE_LENGTH).contains(&length)
-                && !hash.is_empty()
-            {
-                PasswordHash::new(hash)
-                    .map_err(|e| e.to_string())?;
+            if (MIN_CODE_LENGTH..=MAX_CODE_LENGTH).contains(&length) && !hash.is_empty() {
+                PasswordHash::new(hash).map_err(|e| e.to_string())?;
 
                 return Ok((length, hash.to_owned()));
             }
@@ -118,36 +96,25 @@ fn load_config(app: &AppHandle) -> Result<(usize, String), String> {
     Err("Legacy configuration requires an access-code reset".into())
 }
 
-fn verify_code(
-    app: &AppHandle,
-    code: &str,
-) -> Result<bool, String> {
+fn verify_code(app: &AppHandle, code: &str) -> Result<bool, String> {
     let (_, stored_hash) = load_config(app)?;
 
-    let parsed =
-        PasswordHash::new(&stored_hash).map_err(|e| e.to_string())?;
+    let parsed = PasswordHash::new(&stored_hash).map_err(|e| e.to_string())?;
 
-    Ok(
-        Argon2::default()
-            .verify_password(code.as_bytes(), &parsed)
-            .is_ok()
-    )
+    Ok(Argon2::default()
+        .verify_password(code.as_bytes(), &parsed)
+        .is_ok())
 }
 
 #[tauri::command]
-pub fn get_access_code_length(
-    app: AppHandle,
-) -> Result<usize, String> {
+pub fn get_access_code_length(app: AppHandle) -> Result<usize, String> {
     let (length, _) = load_config(&app)?;
 
     Ok(length)
 }
 
 #[tauri::command]
-pub fn verify_access_code(
-    app: AppHandle,
-    code: String,
-) -> Result<bool, String> {
+pub fn verify_access_code(app: AppHandle, code: String) -> Result<bool, String> {
     validate_code(&code)?;
 
     verify_code(&app, &code)
@@ -175,9 +142,7 @@ pub fn change_access_code(
 }
 
 #[tauri::command]
-pub fn factory_reset(
-    app: AppHandle,
-) -> Result<usize, String> {
+pub fn factory_reset(app: AppHandle) -> Result<usize, String> {
     // Подготавливаем хеш стандартного кода до очистки.
     let default_hash = hash_code(DEFAULT_CODE)?;
 
@@ -188,10 +153,7 @@ pub fn factory_reset(
     // непосредственно на корень песочницы приложения.
     // Сам корень удалять нельзя: Android запрещает это.
     #[cfg(target_os = "android")]
-    let android_app_root = app
-        .path()
-        .app_local_data_dir()
-        .map_err(|e| e.to_string())?;
+    let android_app_root = app.path().app_local_data_dir().map_err(|e| e.to_string())?;
 
     let mut removal_errors: Vec<String> = Vec::new();
 
@@ -219,12 +181,7 @@ pub fn factory_reset(
     let config_dir = app
         .path()
         .app_config_dir()
-        .map_err(|e| {
-            format!(
-                "Cannot resolve configuration directory: {}",
-                e
-            )
-        })?;
+        .map_err(|e| format!("Cannot resolve configuration directory: {}", e))?;
 
     fs::create_dir_all(&config_dir).map_err(|e| {
         format!(
@@ -238,12 +195,7 @@ pub fn factory_reset(
     let access_file = config_dir.join("access.hash");
 
     save_hash(&access_file, DEFAULT_CODE, &default_hash)
-        .map_err(|e| {
-            format!(
-                "Cannot restore default access code: {}",
-                e
-            )
-        })?;
+        .map_err(|e| format!("Cannot restore default access code: {}", e))?;
 
     // Сообщаем об ошибках только после восстановления кода.
     if !removal_errors.is_empty() {
@@ -303,8 +255,7 @@ mod tests {
     fn hash_code_creates_a_verifiable_argon2_hash() {
         let code = "123+=";
         let hash = hash_code(code).expect("hashing should succeed");
-        let parsed_hash =
-            PasswordHash::new(&hash).expect("hash should use PHC format");
+        let parsed_hash = PasswordHash::new(&hash).expect("hash should use PHC format");
 
         assert!(
             Argon2::default()
